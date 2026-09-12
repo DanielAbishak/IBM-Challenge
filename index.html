@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="BUSM2578 Assignment 2, Group G04 - low-fidelity clickable prototype of proposed IBM SkillsBuild improvements.">
+<style>
+  html { color-scheme: light dark; }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #E9EEEC; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Keep Going</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+
+<style>
+  :root {
+    /* neutrals — very low chroma, biased toward the teal so they read as chosen */
+    --bg: #E9EEEC;
+    --surface: #FFFFFF;
+    --surface-2: #F1F5F4;
+    --line: #D2DCDA;
+    --line-strong: #AFBFBB;
+    --ink: #101817;
+    --muted: #566462;
+
+    /* hue 1 — TEAL. action and progress. the only saturated colour on a resting screen */
+    --act: #0D5C55;
+    --act-ink: #FFFFFF;
+    --act-soft: #D3E8E4;
+    --act-text: #0A4842;
+
+    /* hue 2 — INDIGO. the AI companion, and only the companion */
+    --ai: #34479B;
+    --ai-ink: #FFFFFF;
+    --ai-soft: #DFE3F6;
+    --ai-text: #2B3B84;
+
+    /* hue 3 — AMBER. stopping and saved state. warm, not red */
+    --warm: #A85B14;
+    --warm-ink: #FFFFFF;
+    --warm-soft: #FBEBD6;
+    --warm-text: #8A4A10;
+
+    --shadow: 0 1px 2px rgba(16, 24, 23, .07), 0 14px 36px rgba(16, 24, 23, .11);
+    --radius: 14px;
+    --ui: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0C1211;
+      --surface: #151E1D;
+      --surface-2: #1C2726;
+      --line: #2A3836;
+      --line-strong: #3D4E4B;
+      --ink: #E6EDEB;
+      --muted: #93A29F;
+      --act: #6FC8BC;
+      --act-ink: #0C1211;
+      --act-soft: #17302D;
+      --act-text: #8FD7CD;
+      --ai: #93A3EE;
+      --ai-ink: #0C1211;
+      --ai-soft: #1D2444;
+      --ai-text: #AEBAF3;
+      --warm: #E29A57;
+      --warm-ink: #0C1211;
+      --warm-soft: #2E2117;
+      --warm-text: #EFB27A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 18px 44px rgba(0, 0, 0, .5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0C1211;
+    --surface: #151E1D;
+    --surface-2: #1C2726;
+    --line: #2A3836;
+    --line-strong: #3D4E4B;
+    --ink: #E6EDEB;
+    --muted: #93A29F;
+    --act: #6FC8BC;
+    --act-ink: #0C1211;
+    --act-soft: #17302D;
+    --act-text: #8FD7CD;
+    --ai: #93A3EE;
+    --ai-ink: #0C1211;
+    --ai-soft: #1D2444;
+    --ai-text: #AEBAF3;
+    --warm: #E29A57;
+    --warm-ink: #0C1211;
+    --warm-soft: #2E2117;
+    --warm-text: #EFB27A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 18px 44px rgba(0, 0, 0, .5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 40px 20px 64px;
+    margin: 0;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 34px; }
+
+  /* ---------- page head ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 9px; max-width: 660px; }
+  .eyebrow { font-size: 11.5px; letter-spacing: 1.7px; text-transform: uppercase; color: var(--act-text); font-weight: 700; }
+  .masthead h1 { font-family: var(--display); font-weight: 400; font-size: clamp(38px, 6vw, 56px); line-height: 1.02; margin: 0; text-wrap: balance; letter-spacing: -0.5px; }
+  .masthead p { margin: 0; color: var(--muted); font-size: 15.5px; max-width: 60ch; }
+  .masthead p b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- stage ---------- */
+  .stage { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
+  .phone-col { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+  /* the device is a fixed canvas: it never grows, shrinks or reflows.
+     below 440px the whole thing scales as one piece so the layout inside stays identical. */
+  .device {
+    width: 372px; min-width: 372px; max-width: 372px;
+    height: 790px; min-height: 790px; max-height: 790px;
+    flex: 0 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 30px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  .netbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 18px; font-size: 11px; letter-spacing: .4px; height: 32px;
+    background: var(--act-soft); border-bottom: 1px solid var(--line); color: var(--act-text);
+    white-space: nowrap; overflow: hidden;
+  }
+  .netbar.off { background: var(--warm-soft); color: var(--warm-text); font-weight: 600; }
+  .netbar b { font-weight: 700; }
+
+  .appbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px 13px; border-bottom: 1px solid var(--line); }
+  .appbar h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+  .screen { flex-grow: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 15px; }
+  .screen::-webkit-scrollbar { width: 0; }
+
+  .tabbar { border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); padding: 9px 6px 12px; background: var(--surface); }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); background: none; border: 0; font-family: var(--ui); cursor: pointer; padding: 4px 0; }
+  .tab[aria-current="true"] { color: var(--act); font-weight: 700; }
+  .tab svg { width: 20px; height: 20px; }
+
+  /* ---------- app components ---------- */
+  .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 15px; display: flex; flex-direction: column; gap: 11px; background: var(--surface); }
+  .card.tinted { background: var(--act-soft); border-color: transparent; }
+  .card.warm { background: var(--warm-soft); border-color: transparent; }
+  .card.ai { background: var(--ai-soft); border-color: transparent; }
+  .card.flat { background: var(--surface-2); border-color: transparent; }
+
+  .label { font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .title-m { font-size: 17px; font-weight: 700; line-height: 1.25; letter-spacing: -0.2px; }
+  .title-s { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+  .sub { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .sub b { color: var(--ink); font-weight: 700; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .track { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .track > i { display: block; height: 100%; background: var(--act); border-radius: 4px; transition: width .35s ease; }
+
+  .btn {
+    font-family: var(--ui); font-size: 14px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 13px 14px; min-height: 46px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid var(--act); background: var(--act); color: var(--act-ink);
+    transition: transform .08s ease, filter .15s ease;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:active { transform: scale(.985); }
+  .btn.secondary { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn.quiet { background: transparent; color: var(--muted); border-color: transparent; min-height: 40px; padding: 8px; font-weight: 500; }
+  .btn.warm { background: transparent; color: var(--warm-text); border-color: var(--warm); }
+  .btn.ai { background: var(--ai); border-color: var(--ai); color: var(--ai-ink); }
+  .btn svg { width: 17px; height: 17px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .switch { width: 46px; height: 27px; border-radius: 14px; border: 0; background: var(--line-strong); position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s ease; padding: 0; }
+  .switch[aria-checked="true"] { background: var(--act); }
+  .switch.warmsw[aria-checked="true"] { background: var(--warm); }
+  .switch i { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 50%; background: #FFFFFF; transition: left .2s ease; }
+  .switch[aria-checked="true"] i { left: 22px; }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 7px; }
+  .pill { font-family: var(--ui); font-size: 12px; padding: 8px 12px; border-radius: 18px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); cursor: pointer; min-height: 36px; }
+  .pill[aria-pressed="true"] { background: var(--act); border-color: var(--act); color: var(--act-ink); font-weight: 600; }
+  .pill.ask { border-color: var(--ai); color: var(--ai-text); }
+  .pill.ask:hover { background: var(--ai-soft); }
+  .pill.ghost { border-style: dashed; color: var(--muted); }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 5px 9px; border-radius: 14px; background: var(--act-soft); color: var(--act-text); border: 0; font-weight: 600; }
+  .chip.aichip { background: var(--ai-soft); color: var(--ai-text); }
+  .chip svg { width: 13px; height: 13px; }
+
+  .modrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; }
+  .modrow.locked { opacity: .5; }
+
+  .body-lines { display: flex; flex-direction: column; gap: 9px; }
+  .body-lines i { display: block; height: 9px; border-radius: 4px; background: var(--surface-2); }
+  .figure { height: 92px; border: 1px dashed var(--line-strong); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 10.5px; letter-spacing: 1.4px; color: var(--muted); }
+
+  .msgs { display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 86%; font-size: 13px; line-height: 1.55; padding: 11px 13px; border-radius: 14px; }
+  .msg.them { align-self: flex-start; background: var(--ai-soft); color: var(--ai-text); border-bottom-left-radius: 4px; }
+  .msg.me { align-self: flex-end; background: var(--ai); color: var(--ai-ink); border-bottom-right-radius: 4px; }
+
+  .composer { display: flex; gap: 8px; align-items: stretch; }
+  .composer input {
+    flex-grow: 1; min-width: 0; font-family: var(--ui); font-size: 13px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 11px 12px; min-height: 44px;
+  }
+  .composer input::placeholder { color: var(--muted); }
+  .composer input:focus { outline: 2px solid var(--ai); outline-offset: 1px; border-color: var(--ai); }
+  .composer button { flex-shrink: 0; padding: 0 16px; }
+
+  /* ---------- rail ---------- */
+  .rail { flex: 1 1 340px; min-width: 300px; display: flex; flex-direction: column; gap: 24px; }
+  .rail h3 { font-family: var(--display); font-weight: 400; font-size: 27px; margin: 0 0 4px; letter-spacing: -0.2px; }
+
+  .control { border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 16px; background: var(--surface); display: flex; flex-direction: column; gap: 11px; }
+
+  .feats { display: flex; flex-direction: column; }
+  .feat { display: flex; gap: 14px; padding: 15px 0; border-top: 1px solid var(--line); }
+  .feat:first-child { border-top: 0; padding-top: 4px; }
+  .feat-n { flex-shrink: 0; width: 27px; height: 27px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; }
+  .feat-n.t1 { background: var(--act-soft); color: var(--act-text); }
+  .feat-n.t2 { background: var(--warm-soft); color: var(--warm-text); }
+  .feat-n.t3 { background: var(--ai-soft); color: var(--ai-text); }
+  .feat-b { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .feat-b h4 { margin: 2px 0 0; font-size: 15px; font-weight: 700; letter-spacing: -0.1px; }
+  .feat-b p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+  .jump { font-family: var(--ui); font-size: 12.5px; font-weight: 700; background: none; border: 0; padding: 3px 0; cursor: pointer; border-bottom: 1.5px solid currentColor; }
+  .jump.t1 { color: var(--act-text); }
+  .jump.t2 { color: var(--warm-text); }
+  .jump.t3 { color: var(--ai-text); }
+  .jump:hover { opacity: .7; }
+
+  .footnote { font-size: 12.5px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--line); padding-top: 14px; }
+
+  :focus-visible { outline: 2px solid var(--act); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (max-width: 820px) {
+    .stage { gap: 32px; }
+  }
+  /* scale the whole device as one unit rather than letting it reflow */
+  @media (max-width: 440px) {
+    .phone-col { width: 100%; }
+    .device { transform: scale(.86); transform-origin: top center; margin-bottom: -110px; }
+  }
+  @media (max-width: 380px) {
+    .device { transform: scale(.76); margin-bottom: -190px; }
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Prototype &middot; Group G04 &middot; BUSM2578</div>
+    <h1>Keep Going</h1>
+    <p><b>These are our proposed improvements to the existing IBM SkillsBuild platform, not the app as it works today.</b> SkillsBuild is currently a self-paced website with no offline access, no way to save your place in a long course, and only a scripted chatbot for help. This prototype shows three additions: download for offline, stop &amp; resume, and an AI learning companion inside the lesson. Tap through the phone &mdash; everything responds.</p>
+  </header>
+
+  <div class="stage">
+
+    <!-- =================== PHONE =================== -->
+    <div class="phone-col">
+      <div class="device">
+
+        <div class="netbar" id="netbar">
+          <span id="netText">Connected</span>
+          <span><b id="netDl" class="num">4</b> modules saved on this phone</span>
+        </div>
+
+        <div class="appbar">
+          <h2 id="appTitle">My learning</h2>
+          <button class="btn quiet" id="appAction" type="button" hidden>Back</button>
+        </div>
+
+        <!-- ---- HOME ---- -->
+        <section class="screen" data-screen="home">
+          <div class="card warm" id="offlineBanner" hidden>
+            <div class="title-s">You are offline</div>
+            <div class="sub">Saved modules still work. Anything not yet downloaded will wait until you reconnect.</div>
+          </div>
+
+          <div class="card tinted">
+            <div class="label">Continue</div>
+            <div class="title-m">AI Foundations for Business</div>
+            <div class="track"><i id="homeTrack" style="width: 50%;"></i></div>
+            <div class="sub num" id="homeProgress">Module 3 of 8 &middot; part 3 of 6</div>
+            <button class="btn" type="button" data-go="lesson" id="homeResume">Resume module 3</button>
+          </div>
+
+          <div class="card warm" id="homeSaved" hidden>
+            <div class="label" style="color: var(--warm-text);">Where you stopped</div>
+            <div class="sub num" id="homeSavedText" style="color: var(--warm-text);">&mdash;</div>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div class="title-s">Next session</div>
+              <button class="btn quiet" type="button" data-go="saved">Change</button>
+            </div>
+            <div class="sub" id="homeReminder">Tomorrow, 8:10am &mdash; your morning commute. 20 minutes.</div>
+          </div>
+
+          <button class="btn secondary" type="button" data-go="course">View course &amp; downloads</button>
+        </section>
+
+        <!-- ---- COURSE ---- -->
+        <section class="screen" data-screen="course" hidden>
+          <div>
+            <div class="title-m">AI Foundations for Business</div>
+            <div class="sub num" style="margin-top: 5px;">8 modules &middot; 4h 20m total &middot; about 20 min per module</div>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div>
+                <div class="title-s">Download for offline</div>
+                <div class="sub" style="margin-top: 3px;">Learn on the MRT, on a plane, anywhere</div>
+              </div>
+              <button class="switch" id="swOffline" role="switch" aria-checked="true" aria-label="Download for offline" type="button"><i></i></button>
+            </div>
+            <div class="track"><i id="dlTrack" style="width: 50%;"></i></div>
+            <div class="sub num" id="dlText">4 of 8 modules downloaded &middot; 82 MB</div>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div>
+                <div class="title-s">Wi-Fi only</div>
+                <div class="sub" style="margin-top: 3px;">Never uses your mobile data</div>
+              </div>
+              <button class="switch" id="swWifi" role="switch" aria-checked="true" aria-label="Download over Wi-Fi only" type="button"><i></i></button>
+            </div>
+          </div>
+
+          <div class="label">Modules</div>
+
+          <div class="modrow" id="mod3">
+            <div>
+              <div class="title-s">3. Prompting basics</div>
+              <div class="sub num" id="mod3Sub">18 min &middot; saved on this phone</div>
+            </div>
+            <button class="btn quiet" type="button" data-go="lesson" style="color: var(--act-text); font-weight: 700;">Open</button>
+          </div>
+
+          <div class="modrow" id="mod4">
+            <div>
+              <div class="title-s">4. Working with data</div>
+              <div class="sub num" id="mod4Sub">22 min &middot; not downloaded</div>
+            </div>
+            <button class="btn quiet" id="mod4Btn" type="button" style="color: var(--act-text); font-weight: 700;">Download</button>
+          </div>
+
+          <button class="btn secondary" type="button" data-go="home">Back</button>
+        </section>
+
+        <!-- ---- LESSON ---- -->
+        <section class="screen" data-screen="lesson" hidden>
+          <div class="track"><i id="lessonTrack" style="width: 50%;"></i></div>
+          <div class="sub num" id="lessonMeta">Part 3 of 6 &middot; 9 min left</div>
+
+          <div class="card">
+            <div class="title-s">What a token is</div>
+            <div class="body-lines">
+              <i style="width: 100%;"></i><i style="width: 92%;"></i><i style="width: 97%;"></i><i style="width: 61%;"></i>
+            </div>
+            <div class="figure">LESSON CONTENT</div>
+            <div class="body-lines">
+              <i style="width: 88%;"></i><i style="width: 54%;"></i>
+            </div>
+          </div>
+
+          <button class="btn" id="lessonNext" type="button">Continue</button>
+          <button class="btn warm" type="button" data-go="saved" id="stopBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6v12"/><path d="M16 6v12"/></svg>
+            Stop here &amp; save
+          </button>
+          <button class="btn ai" type="button" data-go="companion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/></svg>
+            Ask the companion
+          </button>
+        </section>
+
+        <!-- ---- SAVED ---- -->
+        <section class="screen" data-screen="saved" hidden>
+          <div class="card warm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warm)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 30px; height: 30px;"><path d="m5 12 5 5 9-10"/></svg>
+            <div class="title-m num" id="savedWhere" style="color: var(--warm-text);">Stopped at 11:24, Module 3, Part 3.</div>
+            <div class="sub" style="color: var(--warm-text);">You will start again from this exact point. Nothing is lost, and there is no streak to break.</div>
+          </div>
+
+          <div class="label">Come back when it suits you</div>
+          <div class="pills" id="reminderPills">
+            <button class="pill" type="button" data-rem="Tomorrow, 8:10am on your commute." aria-pressed="true">Tomorrow, commute</button>
+            <button class="pill" type="button" data-rem="Saturday morning, 9:00am.">This weekend</button>
+            <button class="pill ghost" type="button" data-rem="No reminder set.">Don't remind me</button>
+          </div>
+
+          <div class="card flat">
+            <div class="sub num"><b id="minsToday">14 minutes</b> done today. Three modules finished this month.</div>
+          </div>
+
+          <button class="btn" type="button" data-go="home">Done</button>
+          <button class="btn secondary" type="button" data-go="lesson">Keep going anyway</button>
+        </section>
+
+        <!-- ---- COMPANION ---- -->
+        <section class="screen" data-screen="companion" hidden>
+          <div class="chip aichip" style="align-self: flex-start;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg>
+            Answering from Module 3
+          </div>
+
+          <div class="msgs" id="chat">
+            <div class="msg them">I can only see Module 3, so ask me anything from this lesson. Type a question or pick one below.</div>
+          </div>
+
+          <div class="label">Ask</div>
+          <div class="pills" id="askPills">
+            <button class="pill ask" type="button" data-q="What is a token?">What is a token?</button>
+            <button class="pill ask" type="button" data-q="Explain it simpler">Explain it simpler</button>
+            <button class="pill ask" type="button" data-q="How does this apply to my job?">How does this apply to my job?</button>
+            <button class="pill ask" type="button" data-q="Am I on the right course?">Am I on the right course?</button>
+          </div>
+
+          <form class="composer" id="askForm" autocomplete="off">
+            <label for="askInput" class="label" style="position: absolute; left: -9999px;">Ask the companion a question</label>
+            <input id="askInput" type="text" placeholder="Type your own question&hellip;" maxlength="200">
+            <button class="btn ai" type="submit">Send</button>
+          </form>
+
+          <div class="sub">Works offline for saved modules. Conversations are private and are not shared with your employer.</div>
+          <button class="btn secondary" type="button" data-go="lesson">Back to the lesson</button>
+        </section>
+
+        <div class="tabbar">
+          <button class="tab" type="button" data-go="home" data-tab="home" aria-current="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 12 4l8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>
+            Learn
+          </button>
+          <button class="tab" type="button" data-go="companion" data-tab="companion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/></svg>
+            Ask
+          </button>
+          <button class="tab" type="button" data-go="course" data-tab="course">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+            Offline
+          </button>
+          <button class="tab" type="button" data-tab="me" data-go="home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c.9-3.4 3.6-5 7-5s6.1 1.6 7 5"/></svg>
+            Me
+          </button>
+        </div>
+
+      </div>
+
+      <button class="btn quiet" id="resetBtn" type="button">Reset the demo</button>
+    </div>
+
+    <!-- =================== RAIL =================== -->
+    <div class="rail">
+
+      <div class="control">
+        <div class="row">
+          <div>
+            <div class="title-s">Airplane mode</div>
+            <div class="sub" style="margin-top: 3px;">Cuts the connection, like an MRT tunnel</div>
+          </div>
+          <button class="switch warmsw" id="swNet" role="switch" aria-checked="false" aria-label="Airplane mode" type="button"><i></i></button>
+        </div>
+        <div class="sub" id="netHint">Turn this on, then open Module 4 &mdash; it needs a connection. Module 3 is saved, so it still opens.</div>
+      </div>
+
+      <div>
+        <h3>Features</h3>
+        <div class="feats">
+
+          <div class="feat">
+            <div class="feat-n t1">1</div>
+            <div class="feat-b">
+              <h4>Offline access</h4>
+              <p>Switch on airplane mode, then open Module 3 from the course screen. It plays. Module 4 was never downloaded, so it waits.</p>
+              <button class="jump t1" type="button" data-demo="offline">Try it</button>
+            </div>
+          </div>
+
+          <div class="feat">
+            <div class="feat-n t2">2</div>
+            <div class="feat-b">
+              <h4>Stop &amp; resume</h4>
+              <p>Tap Continue once or twice, then Stop here &amp; save. The app keeps the exact second and asks when to come back &mdash; no streak, no guilt.</p>
+              <button class="jump t2" type="button" data-demo="stop">Try it</button>
+            </div>
+          </div>
+
+          <div class="feat">
+            <div class="feat-n t3">3</div>
+            <div class="feat-b">
+              <h4>AI learning companion</h4>
+              <p>Ask from inside the lesson, in your own words. It answers from Module 3 only, and offers the questions learners rarely type but act on.</p>
+              <button class="jump t3" type="button" data-demo="companion">Try it</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="footnote">Low-fidelity prototype for Section 11. The screens are clickable so the flow can be tested with users, but content, timings and figures are placeholders, not real SkillsBuild data.</p>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var DEFAULTS = {
+    online: true, offlineOn: true, wifiOnly: true, mod4Down: false,
+    part: 3, pos: '11:24', saved: false,
+    reminder: 'Tomorrow, 8:10am on your commute.', mins: 14
+  };
+  var S = Object.assign({}, DEFAULTS);
+  var PARTS = 6;
+  var TITLES = { home: 'My learning', course: 'Course', lesson: '3. Prompting basics', saved: 'Saved', companion: 'Learning companion' };
+
+  var CANNED = [
+    { k: ['token'], a: 'A token is a chunk of text the model reads — roughly a short word. It matters because it sets how much you can fit into one prompt.' },
+    { k: ['simpler', 'simple', 'explain'], a: 'Think of tokens as the pieces the model chops your sentence into before it reads. More pieces, more it has to hold at once.' },
+    { k: ['job', 'work', 'apply'], a: 'If you write reports or briefs, token limits decide how much source material you can paste in at once. Module 5 covers splitting long documents.' },
+    { k: ['right course', 'suitable', 'for me'], a: 'For someone applying AI to everyday work rather than building models, yes. If you wanted to build them, the Data Science path would suit you better.' },
+    { k: ['prompt'], a: 'A prompt is everything you send the model in one go — your instruction plus any material you paste in. Part 4 of this module has a worked example.' },
+    { k: ['time', 'long', 'finish'], a: 'This module has three parts left, about nine minutes. You can stop at any point and the app will hold your place.' },
+    { k: ['exam', 'test', 'certificate', 'badge'], a: 'This module ends with a short practice task rather than an exam. The badge is issued once all eight modules are done.' }
+  ];
+  var FALLBACK = 'I can only answer from Module 3, and I do not have that in this lesson. Try asking about tokens or prompts, or I can flag it for a later module.';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var screens = {};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-screen]'), function (el) { screens[el.dataset.screen] = el; });
+  var current = 'home';
+
+  function go(name) {
+    current = name;
+    Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
+    $('appTitle').textContent = TITLES[name] || '';
+    $('appAction').hidden = (name === 'home');
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
+      t.setAttribute('aria-current', String(t.dataset.tab === name));
+    });
+    screens[name].scrollTop = 0;
+    render();
+  }
+
+  function render() {
+    var nb = $('netbar');
+    nb.classList.toggle('off', !S.online);
+    $('netText').textContent = S.online ? 'Connected' : 'Airplane mode — no connection';
+    var count = S.offlineOn ? (S.mod4Down ? 5 : 4) : 0;
+    $('netDl').textContent = count;
+    $('offlineBanner').hidden = S.online;
+
+    var pct = Math.round((S.part / PARTS) * 100);
+    $('homeTrack').style.width = pct + '%';
+    $('homeProgress').textContent = 'Module 3 of 8 · part ' + S.part + ' of ' + PARTS;
+    $('homeResume').textContent = S.saved ? 'Resume at ' + S.pos : 'Resume module 3';
+    $('homeSaved').hidden = !S.saved;
+    $('homeSavedText').textContent = 'Module 3, part ' + S.part + ', at ' + S.pos + '. Tap resume and you are back there.';
+    $('homeReminder').textContent = S.reminder;
+
+    $('swOffline').setAttribute('aria-checked', String(S.offlineOn));
+    $('swWifi').setAttribute('aria-checked', String(S.wifiOnly));
+    $('dlTrack').style.width = Math.round((count / 8) * 100) + '%';
+    $('dlText').textContent = count + ' of 8 modules downloaded · ' + (count * 20) + ' MB';
+    $('mod3Sub').textContent = S.offlineOn ? '18 min · saved on this phone' : '18 min · needs a connection';
+    $('mod3').classList.toggle('locked', !S.offlineOn && !S.online);
+
+    var m4b = $('mod4Btn');
+    if (S.mod4Down) {
+      $('mod4Sub').textContent = '22 min · saved on this phone';
+      m4b.textContent = 'Open'; m4b.disabled = false; $('mod4').classList.remove('locked');
+    } else if (!S.online) {
+      $('mod4Sub').textContent = '22 min · waiting for a connection';
+      m4b.textContent = 'Offline'; m4b.disabled = true; $('mod4').classList.add('locked');
+    } else {
+      $('mod4Sub').textContent = '22 min · not downloaded';
+      m4b.textContent = 'Download'; m4b.disabled = false; $('mod4').classList.remove('locked');
+    }
+
+    $('lessonTrack').style.width = pct + '%';
+    $('lessonMeta').textContent = 'Part ' + S.part + ' of ' + PARTS + ' · ' + ((PARTS - S.part) * 3) + ' min left';
+    $('lessonNext').textContent = S.part >= PARTS ? 'Finish module' : 'Continue';
+
+    $('savedWhere').textContent = 'Stopped at ' + S.pos + ', Module 3, Part ' + S.part + '.';
+    $('minsToday').textContent = S.mins + ' minutes';
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-go]');
+    if (t) { go(t.dataset.go); return; }
+    var d = e.target.closest('[data-demo]');
+    if (!d) { return; }
+    var kind = d.dataset.demo;
+    if (kind === 'offline') {
+      S.online = false; S.offlineOn = true; S.mod4Down = false;
+      $('swNet').setAttribute('aria-checked', 'true');
+      $('netHint').textContent = 'Now open the course screen. Module 3 opens as normal; Module 4 is waiting for a connection.';
+      go('course');
+    } else if (kind === 'stop') {
+      S.online = true; S.saved = false; S.part = 3; S.pos = '11:24'; S.mins = 14;
+      $('swNet').setAttribute('aria-checked', 'false');
+      go('lesson');
+    } else if (kind === 'companion') {
+      S.online = true;
+      $('swNet').setAttribute('aria-checked', 'false');
+      go('companion');
+    }
+  });
+
+  $('appAction').addEventListener('click', function () { go('home'); });
+
+  $('swNet').addEventListener('click', function () {
+    S.online = !S.online;
+    this.setAttribute('aria-checked', String(!S.online));
+    $('netHint').textContent = S.online
+      ? 'Turn this on, then open Module 4 — it needs a connection. Module 3 is saved, so it still opens.'
+      : 'Now open the course screen. Module 3 opens as normal; Module 4 is waiting for a connection.';
+    render();
+  });
+
+  $('swOffline').addEventListener('click', function () {
+    S.offlineOn = !S.offlineOn;
+    if (!S.offlineOn) { S.mod4Down = false; }
+    render();
+  });
+
+  $('swWifi').addEventListener('click', function () { S.wifiOnly = !S.wifiOnly; render(); });
+
+  $('mod4Btn').addEventListener('click', function () {
+    if (S.mod4Down) { go('lesson'); return; }
+    if (!S.online) { return; }
+    S.mod4Down = true; S.offlineOn = true; render();
+  });
+
+  $('lessonNext').addEventListener('click', function () {
+    if (S.part < PARTS) {
+      S.part += 1;
+      S.mins += 4;
+      S.pos = (13 + S.part * 2) + ':0' + (S.part % 10);
+    }
+    render();
+  });
+
+  $('stopBtn').addEventListener('click', function () { S.saved = true; render(); });
+
+  $('reminderPills').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-rem]');
+    if (!b) { return; }
+    Array.prototype.forEach.call(this.querySelectorAll('.pill'), function (p) { p.setAttribute('aria-pressed', 'false'); });
+    b.setAttribute('aria-pressed', 'true');
+    S.reminder = b.dataset.rem;
+    render();
+  });
+
+  function answerFor(q) {
+    var low = q.toLowerCase();
+    for (var i = 0; i < CANNED.length; i++) {
+      for (var j = 0; j < CANNED[i].k.length; j++) {
+        if (low.indexOf(CANNED[i].k[j]) !== -1) { return CANNED[i].a; }
+      }
+    }
+    return FALLBACK;
+  }
+
+  function ask(q) {
+    var chat = $('chat');
+    var me = document.createElement('div');
+    me.className = 'msg me';
+    me.textContent = q;
+    chat.appendChild(me);
+    var them = document.createElement('div');
+    them.className = 'msg them';
+    them.textContent = answerFor(q);
+    chat.appendChild(them);
+    screens.companion.scrollTop = screens.companion.scrollHeight;
+  }
+
+  $('askPills').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-q]');
+    if (b) { ask(b.dataset.q); }
+  });
+
+  $('askForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = $('askInput');
+    var q = input.value.trim();
+    if (!q) { return; }
+    ask(q);
+    input.value = '';
+    input.focus();
+  });
+
+  $('resetBtn').addEventListener('click', function () {
+    S = Object.assign({}, DEFAULTS);
+    $('swNet').setAttribute('aria-checked', 'false');
+    $('netHint').textContent = 'Turn this on, then open Module 4 — it needs a connection. Module 3 is saved, so it still opens.';
+    var chat = $('chat');
+    while (chat.children.length > 1) { chat.removeChild(chat.lastChild); }
+    $('askInput').value = '';
+    Array.prototype.forEach.call($('reminderPills').querySelectorAll('.pill'), function (p, i) {
+      p.setAttribute('aria-pressed', String(i === 0));
+    });
+    go('home');
+  });
+
+  go('home');
+})();
+</script>
+
+</body>
+</html>
