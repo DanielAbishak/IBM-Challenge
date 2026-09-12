@@ -184,6 +184,7 @@
   .btn.secondary { background: transparent; color: var(--ink); border-color: var(--line-strong); }
   .btn.quiet { background: transparent; color: var(--muted); border-color: transparent; min-height: 40px; padding: 8px; font-weight: 500; }
   .btn.warm { background: transparent; color: var(--warm-text); border-color: var(--warm); }
+  .btn.warm.solid { background: var(--warm); color: var(--warm-ink); border-color: var(--warm); }
   .btn.ai { background: var(--ai); border-color: var(--ai); color: var(--ai-ink); }
   .btn svg { width: 17px; height: 17px; }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -274,7 +275,7 @@
   <header class="masthead">
     <div class="eyebrow">Prototype &middot; Group G04 &middot; BUSM2578</div>
     <h1>Keep Going</h1>
-    <p><b>These are our proposed improvements to the existing IBM SkillsBuild platform, not the app as it works today.</b> SkillsBuild is currently a self-paced website with no offline access, no way to save your place in a long course, and only a scripted chatbot for help. This prototype shows three additions: download for offline, stop &amp; resume, and an AI learning companion inside the lesson. Tap through the phone &mdash; everything responds.</p>
+    <p><b>These are our proposed improvements to the existing IBM SkillsBuild platform, not the app as it works today.</b> SkillsBuild is currently a self-paced website with no offline access, no way to save your place in a long course, and only a scripted chatbot for help. This prototype shows three additions: download for offline, time-based sessions you can stop and resume, and an AI learning companion inside the lesson. Tap through the phone &mdash; everything responds.</p>
   </header>
 
   <div class="stage">
@@ -298,6 +299,22 @@
           <div class="card warm" id="offlineBanner" hidden>
             <div class="title-s">You are offline</div>
             <div class="sub">Saved modules still work. Anything not yet downloaded will wait until you reconnect.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">How much time do you have today?</div>
+            <div class="pills" id="goalPills">
+              <button class="pill" type="button" data-goal="10">10 min</button>
+              <button class="pill" type="button" data-goal="20" aria-pressed="true">20 min</button>
+              <button class="pill" type="button" data-goal="30">30 min</button>
+              <button class="pill" type="button" data-goal="custom">Custom</button>
+            </div>
+            <div class="composer" id="customWrap" hidden>
+              <label for="customMins" style="position: absolute; left: -9999px;">Custom minutes</label>
+              <input id="customMins" type="number" min="5" max="90" step="5" value="45">
+              <button class="btn" id="customSet" type="button">Set</button>
+            </div>
+            <div class="sub" id="goalHint">We'll fit the lesson to 20 minutes and tell you when you get there.</div>
           </div>
 
           <div class="card tinted">
@@ -376,6 +393,14 @@
 
         <!-- ---- LESSON ---- -->
         <section class="screen" data-screen="lesson" hidden>
+          <div class="card flat" style="gap: 9px;">
+            <div class="row">
+              <div class="label">Today's session</div>
+              <div class="title-s num" id="timeCount">0 / 20 minutes</div>
+            </div>
+            <div class="track"><i id="timeTrack" style="width: 0%;"></i></div>
+          </div>
+
           <div class="track"><i id="lessonTrack" style="width: 50%;"></i></div>
           <div class="sub num" id="lessonMeta">Part 3 of 6 &middot; 9 min left</div>
 
@@ -388,6 +413,11 @@
             <div class="body-lines">
               <i style="width: 88%;"></i><i style="width: 54%;"></i>
             </div>
+          </div>
+
+          <div class="card warm" id="goalCard" hidden>
+            <div class="title-m num" id="goalText" style="color: var(--warm-text);">You've reached your 20-minute goal.</div>
+            <div class="sub" style="color: var(--warm-text);">Stop now and your place is saved to the second, or carry on if you're in the flow.</div>
           </div>
 
           <button class="btn" id="lessonNext" type="button">Continue</button>
@@ -507,8 +537,8 @@
           <div class="feat">
             <div class="feat-n t2">2</div>
             <div class="feat-b">
-              <h4>Stop &amp; resume</h4>
-              <p>Tap Continue once or twice, then Stop here &amp; save. The app keeps the exact second and asks when to come back &mdash; no streak, no guilt.</p>
+              <h4>Time-based sessions, stop &amp; resume</h4>
+              <p>Pick how long you have on the Home screen, then tap Continue. The app counts toward that goal, tells you when you reach it, and offers to stop &mdash; keeping your exact second, with no streak to break.</p>
               <button class="jump t2" type="button" data-demo="stop">Try it</button>
             </div>
           </div>
@@ -536,8 +566,10 @@
   var DEFAULTS = {
     online: true, offlineOn: true, wifiOnly: true, mod4Down: false,
     part: 3, pos: '11:24', saved: false,
-    reminder: 'Tomorrow, 8:10am on your commute.', mins: 14
+    reminder: 'Tomorrow, 8:10am on your commute.',
+    goal: 20, sessionMins: 0, goalHit: false
   };
+  var STEP = 7; // minutes added each time the learner taps Continue
   var S = Object.assign({}, DEFAULTS);
   var PARTS = 6;
   var TITLES = { home: 'My learning', course: 'Course', lesson: '3. Prompting basics', saved: 'Saved', companion: 'Learning companion' };
@@ -581,7 +613,15 @@
     var pct = Math.round((S.part / PARTS) * 100);
     $('homeTrack').style.width = pct + '%';
     $('homeProgress').textContent = 'Module 3 of 8 · part ' + S.part + ' of ' + PARTS;
-    $('homeResume').textContent = S.saved ? 'Resume at ' + S.pos : 'Resume module 3';
+    $('homeResume').textContent = S.saved
+      ? 'Resume at ' + S.pos + ' · ' + S.goal + ' min'
+      : 'Start ' + S.goal + ' min session';
+    $('goalHint').textContent = "We'll fit the lesson to " + S.goal + ' minutes and tell you when you get there.';
+    Array.prototype.forEach.call($('goalPills').querySelectorAll('.pill'), function (p) {
+      var v = p.dataset.goal;
+      var on = (v === 'custom') ? ([10, 20, 30].indexOf(S.goal) === -1) : (Number(v) === S.goal);
+      p.setAttribute('aria-pressed', String(on));
+    });
     $('homeSaved').hidden = !S.saved;
     $('homeSavedText').textContent = 'Module 3, part ' + S.part + ', at ' + S.pos + '. Tap resume and you are back there.';
     $('homeReminder').textContent = S.reminder;
@@ -607,10 +647,21 @@
 
     $('lessonTrack').style.width = pct + '%';
     $('lessonMeta').textContent = 'Part ' + S.part + ' of ' + PARTS + ' · ' + ((PARTS - S.part) * 3) + ' min left';
-    $('lessonNext').textContent = S.part >= PARTS ? 'Finish module' : 'Continue';
+
+    // time budget for today's session
+    var over = S.sessionMins > S.goal;
+    $('timeCount').textContent = S.sessionMins + ' / ' + S.goal + ' minutes' + (over ? ' · past your goal' : '');
+    $('timeTrack').style.width = Math.min(100, Math.round((S.sessionMins / S.goal) * 100)) + '%';
+
+    $('goalCard').hidden = !S.goalHit;
+    $('goalText').textContent = "You've reached your " + S.goal + '-minute goal.';
+    $('stopBtn').classList.toggle('solid', S.goalHit);
+    $('lessonNext').textContent = S.goalHit
+      ? 'Keep going'
+      : (S.part >= PARTS ? 'Finish module' : 'Continue');
 
     $('savedWhere').textContent = 'Stopped at ' + S.pos + ', Module 3, Part ' + S.part + '.';
-    $('minsToday').textContent = S.mins + ' minutes';
+    $('minsToday').textContent = S.sessionMins + ' minutes';
   }
 
   document.addEventListener('click', function (e) {
@@ -625,8 +676,10 @@
       $('netHint').textContent = 'Now open the course screen. Module 3 opens as normal; Module 4 is waiting for a connection.';
       go('course');
     } else if (kind === 'stop') {
-      S.online = true; S.saved = false; S.part = 3; S.pos = '11:24'; S.mins = 14;
+      S.online = true; S.saved = false; S.part = 3; S.pos = '11:24';
+      S.goal = 20; S.sessionMins = 0; S.goalHit = false;
       $('swNet').setAttribute('aria-checked', 'false');
+      $('customWrap').hidden = true;
       go('lesson');
     } else if (kind === 'companion') {
       S.online = true;
@@ -661,15 +714,47 @@
   });
 
   $('lessonNext').addEventListener('click', function () {
+    if (S.goalHit) {
+      // "Keep going" — dismiss the prompt and don't nag again this session
+      S.goalHit = false;
+      S.sessionMins += STEP;
+      if (S.part < PARTS) { S.part += 1; }
+      S.pos = (13 + S.part * 2) + ':0' + (S.part % 10);
+      render();
+      return;
+    }
+    S.sessionMins += STEP;
     if (S.part < PARTS) {
       S.part += 1;
-      S.mins += 4;
       S.pos = (13 + S.part * 2) + ':0' + (S.part % 10);
     }
+    if (S.sessionMins >= S.goal) { S.goalHit = true; }
     render();
   });
 
-  $('stopBtn').addEventListener('click', function () { S.saved = true; render(); });
+  $('stopBtn').addEventListener('click', function () { S.saved = true; S.goalHit = false; render(); });
+
+  $('goalPills').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-goal]');
+    if (!b) { return; }
+    if (b.dataset.goal === 'custom') {
+      $('customWrap').hidden = !$('customWrap').hidden;
+      if (!$('customWrap').hidden) { $('customMins').focus(); }
+      return;
+    }
+    $('customWrap').hidden = true;
+    S.goal = Number(b.dataset.goal);
+    S.goalHit = S.sessionMins >= S.goal;
+    render();
+  });
+
+  $('customSet').addEventListener('click', function () {
+    var v = Math.max(5, Math.min(90, Number($('customMins').value) || 20));
+    S.goal = v;
+    S.goalHit = S.sessionMins >= S.goal;
+    $('customWrap').hidden = true;
+    render();
+  });
 
   $('reminderPills').addEventListener('click', function (e) {
     var b = e.target.closest('[data-rem]');
@@ -725,6 +810,8 @@
     var chat = $('chat');
     while (chat.children.length > 1) { chat.removeChild(chat.lastChild); }
     $('askInput').value = '';
+    $('customWrap').hidden = true;
+    $('customMins').value = 45;
     Array.prototype.forEach.call($('reminderPills').querySelectorAll('.pill'), function (p, i) {
       p.setAttribute('aria-pressed', String(i === 0));
     });
